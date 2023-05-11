@@ -1,0 +1,5 @@
+.env
+venv
+start-proxy.txt
+env
+__pycache__/

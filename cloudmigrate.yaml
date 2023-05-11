@@ -1,0 +1,100 @@
+steps:
+  # 0. Docker Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - "--no-cache"
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - .
+      - "-f"
+      - Dockerfile
+    id: Build
+
+  # 1. Docker push to Google Artifact Registry
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+    id: Push
+
+  # 2. Make migrations
+  - name: gcr.io/google-appengine/exec-wrapper
+    args:
+      - "-i"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - "-s"
+      - "${PROJECT_ID}:${_DEPLOY_REGION}:${_DB_INSTANCE}"
+      - "-e"
+      - "SETTINGS_NAME=${_SECRET_SETTINGS_NAME}"
+      - "--"
+      - "python"
+      - "manage.py"
+      - "makemigrations"
+    id: Make migrations
+
+  # 3. Migrate
+  - name: gcr.io/google-appengine/exec-wrapper
+    args:
+      - "-i"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - "-s"
+      - "${PROJECT_ID}:${_DEPLOY_REGION}:${_DB_INSTANCE}"
+      - "-e"
+      - "SETTINGS_NAME=${_SECRET_SETTINGS_NAME}"
+      - "--"
+      - "python"
+      - "manage.py"
+      - "migrate"
+    id: Migrate
+
+    # 4. Collect static
+  - name: gcr.io/google-appengine/exec-wrapper
+    args:
+      - "-i"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - "-s"
+      - "${PROJECT_ID}:${_DEPLOY_REGION}:${_DB_INSTANCE}"
+      - "-e"
+      - "SETTINGS_NAME=${_SECRET_SETTINGS_NAME}"
+      - "--"
+      - "python"
+      - "manage.py"
+      - "collectstatic"
+      - "--no-input"
+    id: Collect static
+
+  # 5. Deploy to Cloud Run
+  - id: "deploy"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      [
+        "run",
+        "deploy",
+        "${_SERVICE_NAME}",
+        "--platform",
+        "managed",
+        "--region",
+        "${_DEPLOY_REGION}",
+        "--image",
+        "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA",
+      ]
+
+# Store images in Google Artifact Registry
+images:
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+
+substitutions:
+  _INSTANCE_NAME: cheqi-sql
+  _REGION: southamerica-east1
+  _SERVICE_NAME: cheqi-service-prod
+  _SECRET_SETTINGS_NAME: django_settings
+  _GCR_HOSTNAME: gcr.io
+  _PLATFORM: managed
+  _DEPLOY_REGION: southamerica-east1
+  _DB_INSTANCE: cheqi-sql
