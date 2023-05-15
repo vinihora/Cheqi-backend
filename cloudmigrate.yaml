@@ -88,13 +88,3 @@ images:
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
-
-substitutions:
-  _INSTANCE_NAME: cheqi-sql
-  _REGION: southamerica-east1
-  _SERVICE_NAME: cheqi-service-prod
-  _SECRET_SETTINGS_NAME: django_settings
-  _GCR_HOSTNAME: gcr.io
-  _PLATFORM: managed
-  _DEPLOY_REGION: southamerica-east1
-  _DB_INSTANCE: cheqi-sql
