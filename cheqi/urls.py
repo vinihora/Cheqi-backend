@@ -16,7 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+import custom_auth
+import checkout
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('ap1/v1/auth', custom_auth.site.urls),
+    path('ap1/v1/checkout', checkout.site.urls),
 ]
