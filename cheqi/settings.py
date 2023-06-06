@@ -94,7 +94,7 @@ INSTALLED_APPS = [
     
     #My app's
     "checkout",
-    "custom_auth"
+    "custom_auth",
 
     #3rd app
     "storages",
